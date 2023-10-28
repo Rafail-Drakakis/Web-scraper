@@ -1,0 +1,11 @@
+urllib
+urllib3
+warnings 
+shutil 
+requests
+bs4 
+docx 
+PyPDF2
+zipfile 
+tarfile 
+gzip
