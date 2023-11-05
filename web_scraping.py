@@ -3,65 +3,22 @@ import os
 import re
 import urllib
 import urllib3
-import warnings 
 import shutil 
 import requests
 import bs4 
 import docx 
-import PyPDF2
 import zipfile 
 import tarfile 
 import gzip
+import tkinter as tk
+import customtkinter
+from tkinter import filedialog
+from CTkMessagebox import CTkMessagebox
 
 # Disable InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 #site_downloader.py
-def collect_filenames(directory, filetype):
-    """
-    The function "collect_filenames" collects all filenames with a specific filetype in a given
-    directory and writes them to a text file.
-    
-    :param directory: The "directory" parameter is the path to the directory where you want to collect
-    the filenames from. It can be an absolute path or a relative path
-    :param filetype: The `filetype` parameter is a string that specifies the type of files you want to
-    collect. For example, if you want to collect all the text files in a directory, you would pass
-    `'txt'` as the `filetype` parameter
-    """
-    file_list = [file for root, dirs, files in os.walk(directory) for file in files if file.endswith(filetype)]
-    sorted_file_list = sorted(set(file_list)) # sort the files to appear correctly
-    with open('file_list.txt', 'w') as output_file:
-        for file in sorted_file_list:
-            output_file.write(file + '\n')
-
-def merge_pdfs(output_filename, folder_name):
-    """
-    The function `merge_pdfs` merges multiple PDF files from a specified folder into a single PDF file.
-    
-    :param output_filename: The name of the merged PDF file that will be created
-    :param folder_name: The `folder_name` parameter is the name of the folder where the PDF files are
-    located
-    """
-    pdf_directory = os.path.join(os.getcwd(), folder_name)
-    filenames = []
-
-    with open('file_list.txt', 'r') as file:
-        filenames = file.read().splitlines()
-
-    merger = PyPDF2.PdfMerger()
-    for filename in filenames:
-        filepath = os.path.join(pdf_directory, filename)
-        if os.path.isfile(filepath):
-            merger.append(filepath)
-        else:
-            print(f"Warning: File not found - {filepath}")
-
-    if merger.pages:
-        merger.write(output_filename)
-        merger.close()
-    else:
-        print("No PDF files found for merging.")
-
 def fetch_and_store_files(url, folder_name):
     """
     The function `fetch_and_store_files` fetches files from a given URL and stores them in a specified
@@ -101,7 +58,7 @@ def clean_up_folder(folder_path):
     :param folder_path: The `folder_path` parameter is a string that represents the path to the folder
     that needs to be cleaned up
     """
-    for root, dirs, files in os.walk(folder_path):
+    for root, _, files in os.walk(folder_path):
         for file in files:
             file_path = os.path.join(root, file)
 
@@ -133,7 +90,6 @@ def clean_up_folder(folder_path):
 
                 os.remove(file_path)
 
-#organize_files.py
 def organize_files(directory):
     """
     The `organize_files` function organizes files in a given directory by moving them into folders based
@@ -173,7 +129,7 @@ def organize_files(directory):
         shutil.move(src_path, dst_path)
     
 #scrape_data.py  
-def scrape_text(url, folder_name):
+def scrape_text(url, folder_name, folder_path):
     """
     The function `scrape_text` takes a URL and a folder name as input, scrapes the main text from the
     webpage at the given URL, and saves the cleaned text in a text file within the specified folder.
@@ -190,7 +146,7 @@ def scrape_text(url, folder_name):
         sys.exit(1)
     main_text = replace_chars(main_text)
     os.makedirs(folder_name, exist_ok=True)
-    txt_filename = f"{folder_name}/{folder_name}.txt"
+    txt_filename = f"{folder_name}/{folder_path}.txt"
     with open(txt_filename, 'w', encoding='utf-8') as f:
         f.write(main_text)
     clean_text_file(txt_filename)
@@ -273,35 +229,6 @@ def save_text_as_docx(text, filename):
     doc_file_name = os.path.splitext(filename)[0] + '.docx'
     doc.save(doc_file_name)
 
-def pdf_exists(filename):
-    """
-    The function checks if a file exists and if it contains the string ".pdf".
-    
-    :param filename: The parameter "filename" is a string that represents the name or path of the file
-    that you want to check if it exists and if it is a PDF file
-    :return: a boolean value. It returns True if the file exists and contains the string ".pdf" in its
-    content, and False otherwise.
-    """
-    if os.path.isfile(filename):
-        with open(filename, 'r') as file:
-            content = file.read()
-        if '.pdf' in content:
-            return True
-    return False
-
-#get_info.py
-def get_url_and_folder():    
-    """
-    The function `get_url_and_folder` prompts the user to enter a URL and a folder name, and then
-    returns the URL, folder name, and the directory path where the files will be saved.
-    :return: three values: the URL entered by the user, the name of the folder entered by the user, and
-    the directory path where the folder will be created.
-    """
-    url = input("Enter the URL: ")
-    folder_name = input("Enter the name of the folder you want to save the files: ")
-    directory = os.path.join(os.getcwd(), folder_name)
-    return url, folder_name, directory
-
 def get_page(url):
     """
     The function `get_page` takes a URL as input, sends a GET request to that URL, and returns the
@@ -319,69 +246,78 @@ def get_page(url):
     soup = bs4.BeautifulSoup(response.content, 'html.parser')
     return soup
 
-def merge_pdf_or_not(is_pdf, folder_name, directory):
-    """
-    The function checks if the file is a PDF, asks the user if they want to merge the PDFs, and if yes,
-    it merges the PDFs and renames the merged file.
-    
-    :param is_pdf: A boolean value indicating whether the files in the folder are PDFs or not
-    :param folder_name: The name of the folder where the PDF files are located
-    :param directory: The `directory` parameter represents the path to the directory where the merged
-    PDF file will be saved
-    """
-    if is_pdf:
-        merge = input("Do you want to get a merged PDF? ")
-        if merge == "yes":
-            merge_pdfs("merged.pdf", folder_name)
-            os.rename(os.path.join(os.getcwd(), "merged.pdf"), os.path.join(directory, "merged.pdf"))
+def show_message(output, sucess):
+    if sucess:
+        CTkMessagebox(title="Success", message=output, icon="check", option_1="Thanks")
+    else:
+        CTkMessagebox(title="Error", message=output, icon="cancel")
 
-#menu.py
-def scrape_text_and_images():
-    """
-    The function `scrape_text_and_images` scrapes text and images from a given URL, saves the text in a
-    folder with a specified name, and optionally saves the images in the same folder.
-    """
-    url, folder_name, directory = get_url_and_folder()
-    scrape_text(url, folder_name)
-    include_images = input("Do you want to include the images? ")
-    if include_images == 'yes':
-        scrape_images(url, folder_name)
-    print(f'The {folder_name} folder has been successfully created.')
+def create_directory(url_entry, folder_name_entry):
+    download_path = filedialog.askdirectory()
+    folder_name = os.path.splitext(os.path.basename(download_path))[0]
+    url = url_entry.get()
+    folder_name = folder_name_entry.get()
+    directory = os.path.join(download_path, folder_name)
+    output = f'The {folder_name} folder has been successfully created.'
+    return directory, output, url, folder_name
 
-def download_files_from_website():
-    """
-    The function `download_files_from_website` downloads files from a website, stores them in a
-    specified folder, checks if any of the files are PDFs, merges the PDFs if necessary, cleans up the
-    folder, organizes the files, and prints a success message.
-    """
-    url, folder_name, directory = get_url_and_folder()
-    fetch_and_store_files(url, folder_name)
-    collect_filenames(directory, ".pdf")
-    is_pdf = pdf_exists("file_list.txt")
-    merge_pdf_or_not(is_pdf, folder_name, directory)
-    clean_up_folder(directory)
-    os.remove("file_list.txt")
-    organize_files(directory)
-    print(f'The {folder_name} folder has been successfully created.')
-
-#main.py
-    """
-    The function `web_scraping()` presents a menu to the user, allowing them to choose between scraping
-    text and images from a website or downloading files from a website.
-    """
-def main():
+def scrape_text_and_images(url_entry, folder_name_entry):
     try:
-        choice = int(input("=== Web Scraping Menu ===\n1. To scrape text and images from a website\n2. To download files from a website: "))
-        if choice == 1:
-            scrape_text_and_images()
-        elif choice == 2:
-            download_files_from_website()
-        else:
-            print("Invalid choice")
-            exit(0)
-    except ValueError:
-        print("Enter an integer")
-        exit(0)
+        directory, output, url, folder_name = create_directory(url_entry, folder_name_entry)
+        scrape_text(url, directory, folder_name) 
+        scrape_images(url, directory)
+        show_message(output, 1)
+    except Exception as e:
+        show_message(str(e), 0)
 
-if __name__ == "__main__":
-    main()
+def download_files_from_website(url_entry, folder_name_entry):
+    try: 
+        directory, output, url, _ = create_directory(url_entry, folder_name_entry)  
+        fetch_and_store_files(url, directory)
+        clean_up_folder(directory)
+        organize_files(directory)
+        show_message(output, 1)
+    except Exception as e:
+        show_message(str(e), 0)
+
+def main():
+    app = customtkinter.CTk()
+    app.title("Media downloader")
+
+    # Set the window size
+    window_width = 700
+    window_height = 620
+
+    # Get the screen width and height
+    screen_width = app.winfo_screenwidth()
+    screen_height = app.winfo_screenheight()
+
+    # Calculate the x and y coordinates for the window to be centered
+    x = (screen_width - window_width) // 2
+    y = (screen_height - window_height) // 2
+
+    # Set the geometry of the window to center it on the screen
+    app.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+    get_text_title = customtkinter.CTkLabel(app, text="Enter the URL of the web page you want to scrape text and images from")
+    get_text_title.pack()
+    
+    # Create Entry widgets to get URL and folder name
+    url_entry = tk.Entry(app, width=50)
+    url_entry.pack(pady=10, padx=10)
+
+    scrape_text_and_images_button = customtkinter.CTkButton(app, text="Scrape Text and Images", command=lambda: scrape_text_and_images(url_entry, folder_name_entry))
+    scrape_text_and_images_button.pack(pady=10, padx=10)
+
+    get_files_title = customtkinter.CTkLabel(app, text="Enter the name of the folder where you want to store the files")
+    get_files_title.pack()
+    
+    folder_name_entry = tk.Entry(app, width=50)
+    folder_name_entry.pack(pady=10, padx=10)
+    
+    download_files_button = customtkinter.CTkButton(app, text="Download Files from Website", command=lambda: download_files_from_website(url_entry, folder_name_entry))
+    download_files_button.pack(pady=10, padx=10)
+    # Start the GUI main loop
+    app.mainloop()
+
+main()
