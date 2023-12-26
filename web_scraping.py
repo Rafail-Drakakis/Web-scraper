@@ -280,7 +280,7 @@ def download_files_from_website(url_entry, folder_name_entry):
     except Exception as e:
         show_message(str(e), 0)
 
-def main():
+if __name__ == "__main__":
     app = customtkinter.CTk()
     app.title("Media downloader")
 
@@ -319,5 +319,3 @@ def main():
     download_files_button.pack(pady=10, padx=10)
     # Start the GUI main loop
     app.mainloop()
-
-main()
