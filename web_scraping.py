@@ -1,19 +1,19 @@
+from CTkMessagebox import CTkMessagebox
+from tkinter import filedialog
+import customtkinter
+import tkinter as tk
+import requests
+import urllib3
+import urllib
+import zipfile
+import tarfile
+import shutil
+import docx
+import gzip
+import bs4
 import sys
 import os
 import re
-import urllib
-import urllib3
-import shutil 
-import requests
-import bs4 
-import docx 
-import zipfile 
-import tarfile 
-import gzip
-import tkinter as tk
-import customtkinter
-from tkinter import filedialog
-from CTkMessagebox import CTkMessagebox
 
 # Disable InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -247,23 +247,62 @@ def get_page(url):
     return soup
 
 def show_message(output, sucess):
+    """
+    The function `show_message` displays a message box with a success or error message.
+    
+    :param output: The output parameter is the message that you want to display in the messagebox. It
+    can be a string or any other data type that can be converted to a string
+    :param sucess: The "success" parameter is a boolean value that indicates whether the operation was
+    successful or not. If it is True, it means the operation was successful. If it is False, it means
+    there was an error
+    """
     if sucess:
         CTkMessagebox(title="Success", message=output, icon="check", option_1="Thanks")
     else:
         CTkMessagebox(title="Error", message=output, icon="cancel")
 
-def create_directory(url_entry, folder_name_entry):
+def create_directory(url, folder_name):
+    """
+    The function creates a directory with a specified folder name in a chosen download path and returns
+    the directory path, a success message, the URL, and the folder name.
+    
+    :param url: The `url` parameter is a string that represents the URL of a file or resource that you
+    want to download and save in the created directory
+    :param folder_name: The name of the folder that you want to create
+    :return: a tuple containing the following values:
+    1. directory: the path of the created folder
+    2. output: a string indicating the success message
+    3. url: the input URL
+    4. folder_name: the input folder name
+    """
     download_path = filedialog.askdirectory()
-    folder_name = os.path.splitext(os.path.basename(download_path))[0]
-    url = url_entry.get()
-    folder_name = folder_name_entry.get()
     directory = os.path.join(download_path, folder_name)
     output = f'The {folder_name} folder has been successfully created.'
     return directory, output, url, folder_name
 
 def scrape_text_and_images(url_entry, folder_name_entry):
+    """
+    The function `scrape_text_and_images` takes in a URL and a folder name as input, creates a
+    directory, scrapes text and images from the URL, and displays a message based on the output.
+    
+    :param url_entry: The `url_entry` parameter is a text entry field where the user can input a URL. It
+    is used to retrieve the URL entered by the user
+    :param folder_name_entry: The parameter `folder_name_entry` is likely a text entry field or widget
+    where the user can input the desired folder name. It is used to retrieve the value entered by the
+    user and assign it to the variable `folder_name` in the function
+    :return: early if the folder name is empty. Otherwise, it is not explicitly returning anything.
+    """
+    # Retrieve and clean the inputs
+    url = url_entry.get().strip()
+    folder_name = folder_name_entry.get().strip()
+
+    # Check if the folder name is empty
+    if not folder_name:
+        show_message("Folder name cannot be empty. Please enter a valid folder name.", 0)
+        return  # Return early
+
     try:
-        directory, output, url, folder_name = create_directory(url_entry, folder_name_entry)
+        directory, output, url, folder_name = create_directory(url, folder_name)
         scrape_text(url, directory, folder_name) 
         scrape_images(url, directory)
         show_message(output, 1)
@@ -271,8 +310,28 @@ def scrape_text_and_images(url_entry, folder_name_entry):
         show_message(str(e), 0)
 
 def download_files_from_website(url_entry, folder_name_entry):
+    """
+    The function `download_files_from_website` takes in a URL and folder name as inputs, creates a
+    directory, fetches and stores files from the website, cleans up the folder, organizes the files, and
+    displays a message.
+    
+    :param url_entry: The `url_entry` parameter is an entry field where the user can input the URL of
+    the website from which they want to download files
+    :param folder_name_entry: The `folder_name_entry` parameter is an entry widget that allows the user
+    to enter the name of the folder where the downloaded files will be stored
+    :return: early if the folder name is empty. Otherwise, it is not explicitly returning anything.
+    """
+    # Retrieve and clean the inputs
+    url = url_entry.get().strip()
+    folder_name = folder_name_entry.get().strip()
+
+    # Check if the folder name is empty
+    if not folder_name:
+        show_message("Folder name cannot be empty. Please enter a valid folder name.", 0)
+        return  # Return early
+
     try: 
-        directory, output, url, _ = create_directory(url_entry, folder_name_entry)  
+        directory, output, url, folder_name = create_directory(url, folder_name)  
         fetch_and_store_files(url, directory)
         clean_up_folder(directory)
         organize_files(directory)
@@ -282,7 +341,7 @@ def download_files_from_website(url_entry, folder_name_entry):
 
 if __name__ == "__main__":
     app = customtkinter.CTk()
-    app.title("Media downloader")
+    app.title("Web scraper")
 
     # Set the window size
     window_width = 700
@@ -306,9 +365,6 @@ if __name__ == "__main__":
     url_entry = tk.Entry(app, width=50)
     url_entry.pack(pady=10, padx=10)
 
-    scrape_text_and_images_button = customtkinter.CTkButton(app, text="Scrape Text and Images", command=lambda: scrape_text_and_images(url_entry, folder_name_entry))
-    scrape_text_and_images_button.pack(pady=10, padx=10)
-
     get_files_title = customtkinter.CTkLabel(app, text="Enter the name of the folder where you want to store the files")
     get_files_title.pack()
     
@@ -317,5 +373,8 @@ if __name__ == "__main__":
     
     download_files_button = customtkinter.CTkButton(app, text="Download Files from Website", command=lambda: download_files_from_website(url_entry, folder_name_entry))
     download_files_button.pack(pady=10, padx=10)
-    # Start the GUI main loop
+    
+    scrape_text_and_images_button = customtkinter.CTkButton(app, text="Scrape Text and Images", command=lambda: scrape_text_and_images(url_entry, folder_name_entry))
+    scrape_text_and_images_button.pack(pady=10, padx=10)
+
     app.mainloop()
