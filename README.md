@@ -34,11 +34,3 @@ To use Web scraper, you can run the main script as follows:
 ```python main.py```
 
 This will launch the GUI where you can enter the URL of the website you want to scrape or download media from and specify the folder name where the media will be saved.
-
-## License
-
-This project is under the MIT license
-
-## Contact
-
-If you want to contact me you can reach me at rafaildrakakis123@gmail.com.
